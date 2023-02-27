@@ -8,15 +8,9 @@ using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Serialization;
-using Nimbis.FolderSign.Logging;
-using Nimbis.FolderSign.Misc;
+using System.Collections.Generic;
 
-namespace Nimbis.FolderSign.Timestamping;
-
-/// <summary>
-/// A RFC3161 Timestamp of a hash value.
-/// </summary>
-public class Timestamping
+public static class Timestamping
 {
     private static readonly HttpClient HttpClient = new HttpClient();
     private static readonly String RequestContentType = "application/timestamp-query";
@@ -35,7 +29,7 @@ public class Timestamping
     public static Rfc3161TimestampToken RequestTimestampTokenForHash(byte[] hash, HashAlgorithmName hashAlgorithmName)
     {
         // A random nonce
-        byte[] nonce = CryptoUtils.GetNonce(20);
+        byte[] nonce = GetNonce(20);
         
         // Creating Rfc3161TimestampRequest instance, which will be used as the HTTP POST payload
         Rfc3161TimestampRequest timestampRequest =
@@ -72,7 +66,7 @@ public class Timestamping
         if (contentType.MediaType!.Equals(ResponseContentType))
             throw new Exception($"Invalid response Content-Type: {contentType.MediaType}");
 
-        byte[] timestampResponseBytes = StreamUtil.GetStreamBytes(httpResponseMessage.Content.ReadAsStream());
+        byte[] timestampResponseBytes = GetStreamBytes(httpResponseMessage.Content.ReadAsStream());
 
         int bytesConsumed;
         Rfc3161TimestampToken timestampToken =
@@ -85,4 +79,46 @@ public class Timestamping
 
         return timestampToken;
     }
+    
+    /// <summary>
+    /// Reads the contents of <paramref name="stream"/> as an array of bytes.
+    /// </summary>
+    /// <param name="stream">Stream we are reading.</param>
+    /// <returns>An array of bytes representing the contents of the stream.</returns>
+    private static byte[] GetStreamBytes(Stream stream)
+    {
+        List<byte> bytes = new List<byte>();
+
+        using (stream)
+        {
+            while (true)
+            {
+                int b = stream.ReadByte();
+                if (b == -1) break;
+
+                bytes.Add((byte)b);
+            }
+        }
+
+        return bytes.ToArray();
+    }
+    
+    /// <summary>
+    /// Generates a random nonce with a length of <paramref name="length"/>
+    /// </summary>
+    /// <param name="length">Length of the nonce (in bytes).</param>
+    /// <returns>Byte array representing the nonce value</returns>
+    private static byte[] GetNonce(int length)
+    {
+        byte[] outBytes = new byte[length];
+
+        using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
+        {
+            randomNumberGenerator.GetBytes(outBytes);
+        }
+
+        return outBytes;
+    }
+    
+    
 }
