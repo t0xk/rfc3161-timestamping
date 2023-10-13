@@ -73,7 +73,7 @@ public static class Timestamping
             timestampRequest.ProcessResponse(timestampResponseBytes, out bytesConsumed);
 
         X509Certificate2? timestampAuthorityCertificate;
-        if (!timestampToken.VerifySignatureForHash(hashBytes, hashAlgorithmName, out timestampAuthorityCertificate))
+        if (!timestampToken.VerifySignatureForHash(hash, hashAlgorithmName, out timestampAuthorityCertificate))
             throw new Exception(
                 $"Timestamp could not be verified for hash({hashAlgorithmName.Name}: {CryptoUtils.BytesToHexString(hash)})");
 
